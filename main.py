@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from modules.modules import create_catalog
+from modules.modules import create_telephone_book
 from modules.modules import create_record
 from modules.modules import show_record
 from modules.modules import fix_record
@@ -8,13 +6,14 @@ from modules.modules import delete_record
 from modules.modules import show_all_records
 from modules.modules import exit_
 from modules.modules import create_telephone_book
-from modules.modules import cheak_telephone_book
+from modules.modules import cheak_exist_telephone_book
 from modules.modules import cheak_structure
+from modules.modules import delete_telephone_book
 
 
-
+from pathlib import Path
 import json 
-
+import pandas as pd
 
 
 def controler() -> tuple:
@@ -55,15 +54,12 @@ def controler() -> tuple:
         return controler()
 
 
-
 current_path = Path.cwd
 target_dir = Path('list_dir')
 target_file_path = Path(f'{target_dir}//list.json')
 
 
-
-
-if cheak_telephone_book(target_dir, target_file_path):
+if cheak_exist_telephone_book(target_dir, target_file_path):
 
     cheak = cheak_structure(target_file_path)
 
@@ -80,7 +76,7 @@ if cheak_telephone_book(target_dir, target_file_path):
         print('')
 
     else:
-        print(f'''Справочник уже создан! Но структура не соответсвует.
+        print(f'''Справочник уже создан! Но структура не соответсвует требованиям.
             
             Структура справочника:
 
@@ -93,13 +89,17 @@ if cheak_telephone_book(target_dir, target_file_path):
 
         if delete_and_create == 'Y':
 
-            cheak_telephone_book()
-        elif delete_and_create == 'Y':
+            if delete_telephone_book(current_path, target_dir)[0] == True:
+                
+                if create_telephone_book(target_dir, target_file_path) [0] == True:
+
+                    print('Справочник успешно создан. Структура верная!')
+
+
+        elif delete_and_create == 'N':
             print('Структура справочника не соответсвует. Перед началом работы необходимо удалить имеющийся справочник.')
             exit()
             
-        
-
 else:
     print('Справочник не найден.')
     print('Создать справочник Y/N?')
@@ -107,8 +107,12 @@ else:
 
     if create == 'Y':
 
-        cheak_telephone_book()
-
+        if create_telephone_book(target_dir, target_file_path) [0] == True:
+                    
+                    pass
+        else:
+            # Добавить логику 
+            pass
 
     elif create == 'N':
         print('''
@@ -127,6 +131,7 @@ else:
         exit()
 
 
+
 while True:
     
     requests_func = controler()
@@ -134,8 +139,9 @@ while True:
     print(requests_func)
 
     if requests_func[1] == 'lower':
-        sub_func = requests_func[2]()
+        sub_func = requests_func[2](target_file_path)
 
+        print(sub_func)
         if sub_func[1] == 'top':
             continue
     
