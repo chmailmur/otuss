@@ -9,9 +9,7 @@ def cheak_exist_telephone_book(dir, path_file):
         return True
     else:
         return False
-    
-
-    
+     
 def cheak_structure(path_file):
 
     with path_file.open(mode='r', encoding='utf-8') as file:
@@ -28,8 +26,6 @@ def cheak_structure(path_file):
     
     else:
         return False, structure
-
-
 
 def create_telephone_book(dir, file_path):
 
@@ -53,8 +49,6 @@ def create_telephone_book(dir, file_path):
     
     return (True,menu_type,)
 
-
-
 def delete_telephone_book(parrent_dir, dir):
 
     menu_type = 'top'
@@ -63,8 +57,6 @@ def delete_telephone_book(parrent_dir, dir):
         shutil.rmtree(dir)
 
     return (True,menu_type,)
-
-
 
 def create_record(file_path):
     menu_type = 'top'
@@ -109,6 +101,8 @@ def show_record(file_path):
     import pandas as pd
 
     menu_type = 'top'
+
+    ### добавить поиск по другим полям.
     
     print('Введите имя для поиска')
     name =  input()
@@ -117,14 +111,39 @@ def show_record(file_path):
     with file_path.open(mode='r', encoding='utf-8') as file:
 
         content = json.load(file)
-        
     
+    df = pd.DataFrame.from_dict(content, orient='index')
+    df = df[df['name'] == name ] 
+    
+    print(df)
 
     return ('',menu_type,)
 
-def show_all_records():
+def show_all_records(file_path):
     menu_type = 'top'
-    print('show_all_records')
+    
+    import pandas as pd
+
+    menu_type = 'top'
+    
+    print('-------------Контакты------------')
+
+
+    
+    with file_path.open(mode='r', encoding='utf-8') as file:
+
+        content = json.load(file)
+    
+    df = pd.DataFrame.from_dict(content, orient='index')
+    
+    print(df)
+
+    print('---------------------------------')
+
+    return ('',menu_type,)
+
+
+
     return ('',menu_type,)
 
 def exit_():
