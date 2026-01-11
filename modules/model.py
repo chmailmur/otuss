@@ -218,7 +218,7 @@ def fix_record(file_path):
 
         if not index.empty:
 
-            content[index]['name'] = input('Новое имя: ')
+            content[index[0]]['name'] = input('Новое имя: ')
             
         else:
 
@@ -241,7 +241,7 @@ def fix_record(file_path):
 
         if not index.empty:
 
-            content[index]['phone'] = input('Новый телефон: ')
+            content[index[0]]['phone'] = input('Новый телефон: ')
             
         else:
 
@@ -264,7 +264,7 @@ def fix_record(file_path):
 
         if not index.empty:
 
-            content[index]['comment'] = input('Новый comment: ')
+            content[index[0]]['comment'] = input('Новый comment: ')
             
         else:
 
@@ -287,9 +287,9 @@ def fix_record(file_path):
 
         if not index.empty:
 
-            content[index]['name'] = input('Новое имя: ')
-            content[index]['phone'] = input('Новый телефон: ')
-            content[index]['comment'] = input('Новый комментарий: ')
+            content[index[0]]['name'] = input('Новое имя: ')
+            content[index[0]]['phone'] = input('Новый телефон: ')
+            content[index[0]]['comment'] = input('Новый комментарий: ')
             
         else:
 

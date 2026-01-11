@@ -5,8 +5,6 @@ from modules.model import cheak_exist_telephone_book
 from modules.model import cheak_structure
 from modules.model import delete_telephone_book
 
-
-
 from pathlib import Path
 import json 
 import pandas as pd
