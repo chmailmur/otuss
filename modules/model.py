@@ -49,7 +49,7 @@ def create_telephone_book(dir, file_path):
     
     return (True,menu_type,)
 
-def delete_telephone_book(parrent_dir, dir):
+def delete_telephone_book(dir):
 
     menu_type = 'top'
 
