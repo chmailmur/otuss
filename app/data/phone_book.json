@@ -5,8 +5,38 @@
         "comment": "Default contact"
     },
     "1": {
-        "name": "\u041a\u0430\u0442\u044f",
-        "phone": "756",
-        "comment": "\u041c\u043e\u043b\u043e\u0434\u0435\u0446"
+        "name": "Рома",
+        "phone": "124",
+        "comment": "прогер"
+    },
+    "2": {
+        "name": "Рома",
+        "phone": "124",
+        "comment": "прогер"
+    },
+    "3": {
+        "name": "Рома",
+        "phone": "124",
+        "comment": "прогер"
+    },
+    "4": {
+        "name": "Рома",
+        "phone": "124",
+        "comment": ""
+    },
+    "5": {
+        "name": "Рома",
+        "phone": "124",
+        "comment": "прогер"
+    },
+    "6": {
+        "name": "Рома",
+        "phone": "124",
+        "comment": ""
+    },
+    "7": {
+        "name": "Рома",
+        "phone": 124,
+        "comment": ""
     }
 }

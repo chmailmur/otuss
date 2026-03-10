@@ -46,6 +46,22 @@ class PhoneBook:
             'change_contact': self.change_contact,
         }
 
+    def _read_pb(self) -> Dict:
+        try: 
+            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return {}
+        except json.JSONDecodeError as error:
+            raise ValueError(f'Справочник поврежден: {error}')
+
+    def _write_pb(self, content:Dict) -> None:
+        try: 
+            with self.phone_book_path.open(mode='w', encoding='utf-8') as file:
+                return json.dump(content, file, indent=4, ensure_ascii=False)
+        except OSError as err:
+            raise OSError(f'Файл не записан: {err}')
+
     def show_contacts(self) -> pd.DataFrame:
         """
         Возвращает все контакты телефонной книги.
@@ -53,11 +69,7 @@ class PhoneBook:
         :return: DataFrame со всеми контактами
         :rtype: pd.DataFrame
         """
-        try:
-            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                content = json.load(file)
-        except FileNotFoundError:
-            raise
+        content = self._read_pb()
 
         df = pd.DataFrame.from_dict(content, orient='index')
         return df
@@ -71,31 +83,28 @@ class PhoneBook:
         :return: True при успешном создании
         :rtype: bool
         """
-        try:
-            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                content = json.load(file)
-        except FileNotFoundError:
-            raise
+
+        if data_set is None:
+            raise ValueError('data_set не передан!')
+
+        req_fields = {'name', 'phone', 'comment'}
+        if not req_fields.issubset(data_set.keys()):
+            raise ValueError('Не все обязательные поля переданы')
+        
+        wrong_val = {''}
+        if wrong_val.issubset(list(data_set.values())[:-1]):
+            raise ValueError('Имя и телефон не могут быть пустыми строками.')
+
+        content = self._read_pb()
 
         last_key = [_ for _ in content.keys()][-1]
         last_key = int(last_key) + 1
-        last_key = str(f'{last_key}')
+        new_key = str(last_key)
 
-        if (
-            data_set.get('name') is not None
-            and data_set.get('phone') is not None
-            and data_set.get('comment') is not None
-        ):
-            content[last_key] = data_set
-        else:
-            raise ValueError('Не все значения аргументы переданы.')
+        content[new_key] = data_set
 
-        try:
-            with self.phone_book_path.open(mode='w', encoding='utf-8') as file:
-                json.dump(content, file, indent=4)
-        except Exception as err:
-            raise err
-
+        self._write_pb(content)
+        
         return True
 
     def search_contact(self, search_dict: Dict = None) -> pd.DataFrame:
@@ -110,12 +119,7 @@ class PhoneBook:
         field, contact = search_dict.get('field'), search_dict.get('contact')
 
         if (field is not None) or (contact is not None):
-            try:
-                with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                    content = json.load(file)
-            except FileNotFoundError:
-                raise
-
+            content = self._read_pb()
             df = pd.DataFrame.from_dict(content, orient='index')
             df = df[df[field] == contact]
             return df
@@ -134,11 +138,7 @@ class PhoneBook:
         if number is None:
             return pd.DataFrame()
 
-        try:
-            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                content = json.load(file)
-        except FileNotFoundError:
-            raise
+        content = self._read_pb()
 
         df = pd.DataFrame.from_dict(content, orient='index')
 
@@ -151,14 +151,8 @@ class PhoneBook:
 
         df = df[df['phone'] != number]
 
-        try:
-            with self.phone_book_path.open(mode='w', encoding='utf-8') as file:
-                file.write(
-                    json.dumps(df.to_dict(orient='index'), indent=4)
-                )
-        except Exception as err:
-            raise err
-
+        self._write_pb(df.to_dict(orient='index'), indent=4)
+        
         return delited_contact
     
     def change_contact(
@@ -179,11 +173,7 @@ class PhoneBook:
         if data_new is None:
             return pd.DataFrame()
 
-        try:
-            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                content = json.load(file)
-        except Exception:
-            raise FileNotFoundError('Файл не найден.')
+        content = self._read_pb()
 
         df = pd.DataFrame.from_dict(content, orient='index')
         idx = df.index[df['phone'] == old_data['contact']][0]
@@ -191,14 +181,8 @@ class PhoneBook:
         for key, val in data_new.items():
             df.at[idx, key] = val
 
-        try:
-            with self.phone_book_path.open(mode='w', encoding='utf-8') as file:
-                file.write(
-                    json.dumps(df.to_dict(orient='index'), indent=4)
-                )
-        except Exception as err:
-            raise err
-
+        self._write_pb(df.to_dict(orient='index'))
+    
         return df
 
     def _check_exists_phone_book(self) -> bool:
@@ -220,16 +204,12 @@ class PhoneBook:
         if not self.phone_book_path.exists():
             return False
 
-        try:
-            with self.phone_book_path.open('r', encoding='utf-8') as file:
-                data = json.load(file)
-        except (json.JSONDecodeError, OSError):
+        content = self._read_pb()
+
+        if not isinstance(content, dict) or not content:
             return False
 
-        if not isinstance(data, dict) or not data:
-            return False
-
-        first_record = next(iter(data.values()))
+        first_record = next(iter(content.values()))
 
         if not isinstance(first_record, dict):
             return False
@@ -251,9 +231,7 @@ class PhoneBook:
                 'comment': 'Default contact',
             }
         }
-
-        with self.phone_book_path.open('w', encoding='utf-8') as file:
-            json.dump(structure, file, indent=4, ensure_ascii=False)
+        self._write_pb(structure)
 
         return True
 
