@@ -5,8 +5,6 @@ import pandas as pd
 from pathlib import Path
 from functools import wraps
 
-print(Path.cwd()/'app'/'data'/'phone_book.json')
-
 class PhoneBook:
     """
     Класс для работы с телефонной книгой.
@@ -18,14 +16,14 @@ class PhoneBook:
     - предоставление интерфейса методов через словарь функций.
     """
 
-    def __init__(self):
+    def __init__(self, path:Path):
         """
         Инициализирует путь к файлу телефонной книги и проверяет его состояние.
 
         При необходимости создаёт файл с дефолтной структурой.
         Также формирует словарь доступных пользовательских функций.
         """
-        self.phone_book_path = Path.cwd() / 'app' / 'data' / 'phone_book.json'
+        self.phone_book_path = path
 
         if self._check_exists_phone_book():
             self.exists = True
@@ -46,21 +44,14 @@ class PhoneBook:
             'change_contact': self.change_contact,
         }
 
-    def _read_pb(self) -> Dict:
-        try: 
-            with self.phone_book_path.open(mode='r', encoding='utf-8') as file:
-                return json.load(file)
-        except FileNotFoundError:
-            return {}
-        except json.JSONDecodeError as error:
-            raise ValueError(f'Справочник поврежден: {error}')
+    def _read_pb(self) -> pd.DataFrame:
+        df = pd.read_csv(self.phone_book_path)
+        return df 
 
-    def _write_pb(self, content:Dict) -> None:
-        try: 
-            with self.phone_book_path.open(mode='w', encoding='utf-8') as file:
-                return json.dump(content, file, indent=4, ensure_ascii=False)
-        except OSError as err:
-            raise OSError(f'Файл не записан: {err}')
+    def _write_pb(self, data:pd.DataFrame) -> None:
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Ошибка типа данных")
+        data.to_csv(self.phone_book_path, index=False)
 
     def show_contacts(self) -> pd.DataFrame:
         """
@@ -69,11 +60,13 @@ class PhoneBook:
         :return: DataFrame со всеми контактами
         :rtype: pd.DataFrame
         """
-        content = self._read_pb()
+        data = self._read_pb()
 
-        df = pd.DataFrame.from_dict(content, orient='index')
-        return df
-
+        if not data.empty:
+            return data
+        else:
+            return "Справочник пуст!"
+        
     def create_contact(self, data_set: Dict = None) -> bool:
         """
         Создаёт новый контакт в телефонной книге.
@@ -83,27 +76,31 @@ class PhoneBook:
         :return: True при успешном создании
         :rtype: bool
         """
-
         if data_set is None:
-            raise ValueError('data_set не передан!')
+            raise ValueError("data is None")
 
-        req_fields = {'name', 'phone', 'comment'}
-        if not req_fields.issubset(data_set.keys()):
-            raise ValueError('Не все обязательные поля переданы')
+        if not isinstance(data_set, dict):
+            raise ValueError("Data type is incorrect")
         
-        wrong_val = {''}
-        if wrong_val.issubset(list(data_set.values())[:-1]):
-            raise ValueError('Имя и телефон не могут быть пустыми строками.')
+        keys = {'name', 'phone', 'comment'}
+        if not keys.issubset(data_set.keys()):
+            raise ValueError('Not all fields passed')
+        
+        not_acceptable_value = {'','0','-', 0}
+        if data_set['name'] in not_acceptable_value:
+            raise AttributeError('Not acceptable name value')
 
-        content = self._read_pb()
+        if data_set['phone'] in not_acceptable_value:
+            raise AttributeError('Not acceptable phone value')
 
-        last_key = [_ for _ in content.keys()][-1]
-        last_key = int(last_key) + 1
-        new_key = str(last_key)
-
-        content[new_key] = data_set
-
-        self._write_pb(content)
+        data = self._read_pb()
+        new_row = [
+            {"name": data_set['name'], 
+             "phone": data_set['phone'], 
+             "comment": data_set['comment']}
+        ]
+        data = pd.concat([data, pd.DataFrame(new_row)],ignore_index=True)
+        self._write_pb(data)
         
         return True
 
@@ -116,13 +113,26 @@ class PhoneBook:
         :return: DataFrame с найденными контактами
         :rtype: pd.DataFrame
         """
+        if search_dict is None:
+            raise ValueError("data is None")
+
+        if not isinstance(search_dict, dict):
+            raise ValueError("Data type is incorrect")
+        
+        keys = {'field', 'contact'}
+        if not keys.issubset(search_dict.keys()):
+            raise ValueError('Not all fields passed')
+        
+        not_acceptable_value = {'','0','-', 0}
+        if search_dict['contact'] in not_acceptable_value:
+            raise AttributeError('Not acceptable name value')
+        
         field, contact = search_dict.get('field'), search_dict.get('contact')
 
         if (field is not None) or (contact is not None):
-            content = self._read_pb()
-            df = pd.DataFrame.from_dict(content, orient='index')
-            df = df[df[field] == contact]
-            return df
+            data = self._read_pb()
+            data = data[data[field] == contact]
+            return data
 
         return pd.DataFrame()
 
@@ -135,23 +145,22 @@ class PhoneBook:
         :return: DataFrame с удалённым контактом
         :rtype: pd.DataFrame
         """
+
         if number is None:
             return pd.DataFrame()
 
-        content = self._read_pb()
+        data = self._read_pb()
 
-        df = pd.DataFrame.from_dict(content, orient='index')
-
-        if 'phone' not in df.columns:
+        if 'phone' not in data.columns:
             return pd.DataFrame()
 
-        delited_contact = df[df['phone'] == number]
+        delited_contact = data[data['phone'] == number]
         if delited_contact.empty:
             return pd.DataFrame()
 
-        df = df[df['phone'] != number]
+        data = data[data['phone'] != number]
 
-        self._write_pb(df.to_dict(orient='index'), indent=4)
+        self._write_pb(data)
         
         return delited_contact
     
@@ -173,17 +182,27 @@ class PhoneBook:
         if data_new is None:
             return pd.DataFrame()
 
-        content = self._read_pb()
+        if not isinstance(data_new, dict):
+            raise ValueError("Data type is incorrect")
+        
+        not_acceptable_value = {'','0','-', 0}
+        if 'name' in data_new.keys():
+            if data_new['name'] in not_acceptable_value:
+                raise AttributeError('Not acceptable name value')
+        if 'phone' in data_new.keys():
+            if data_new['phone'] in not_acceptable_value:
+                    raise AttributeError('Not acceptable phone value')
 
-        df = pd.DataFrame.from_dict(content, orient='index')
-        idx = df.index[df['phone'] == old_data['contact']][0]
+
+        data = self._read_pb()
+        idx = data.index[data['phone'] == old_data['contact']][0]
 
         for key, val in data_new.items():
-            df.at[idx, key] = val
+            data.at[idx, key] = val
 
-        self._write_pb(df.to_dict(orient='index'))
+        self._write_pb(data)
     
-        return df
+        return data
 
     def _check_exists_phone_book(self) -> bool:
         """
@@ -204,18 +223,17 @@ class PhoneBook:
         if not self.phone_book_path.exists():
             return False
 
-        content = self._read_pb()
+        data = self._read_pb()
 
-        if not isinstance(content, dict) or not content:
+
+        if not isinstance(data, pd.DataFrame):
             return False
 
-        first_record = next(iter(content.values()))
-
-        if not isinstance(first_record, dict):
-            return False
-
-        required_keys = {'name', 'phone', 'comment'}
-        return required_keys.issubset(first_record.keys())
+        required_keys = {'name','phone','comment'}
+        if required_keys.issubset(data.columns):
+            return True
+        else: 
+            return  False
 
     def _create_telephone_book(self) -> bool:
         """
@@ -225,13 +243,13 @@ class PhoneBook:
         :rtype: bool
         """
         structure = {
-            '0': {
-                'name': 'your name',
-                'phone': '+7XXXXXXXXXX',
-                'comment': 'Default contact',
-            }
+            "name":{},
+            "phone":{},
+            "comment":{}
         }
-        self._write_pb(structure)
+        data = pd.DataFrame(structure)
+        
+        self._write_pb(data)
 
         return True
 

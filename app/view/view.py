@@ -152,12 +152,6 @@ class View:
         """
         Отображает список контактов.
         """
-        if data.empty:
-            self.data.message = (
-                'Такого контакта не существует. Попробуйте еще раз!'
-            )
-            return self.data
-
         print(data)
         return self.data
 
@@ -206,7 +200,7 @@ class View:
     @output_deco('choose_contact')
     def choose_contact_view(self) -> DataClass:
         """
-        Запрашивает номер телефона контакта для изменения.
+        Запрашивает номер телефона контакта для поиска.
         """
         row = input('Номер телефона: ')
         self.data.data = {'field': 'phone', 'contact': row}

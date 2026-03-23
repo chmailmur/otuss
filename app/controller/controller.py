@@ -1,8 +1,14 @@
-import pandas as pd 
+import os 
 from app.view.view import View
 from app.model.dictionary import PhoneBook
+from pathlib import Path
+from dotenv import load_dotenv
 
+load_dotenv()
 
+file_name = os.getenv('FILE_NAME')
+
+path_file = Path.cwd() / 'app' / 'data' / file_name
 
 def main() -> None:
     """
@@ -16,7 +22,7 @@ def main() -> None:
 
     Реализует роль Controller.
     """
-    pb = PhoneBook()
+    pb = PhoneBook(path_file)
     view = View()
     dict_functions = pb.functions
     print(dict_functions["show_contacts"]())
@@ -60,12 +66,20 @@ def main() -> None:
 
             search_dict = view.choose_contact_view().copy()
             search_contact = dict_functions["search_contact"](search_dict)
+
+            if search_contact.empty:
+                view.data.message = 'Не существует контакта с таким номером.'
+                view.message_view(view.data.message)
+                view.clean_object()
+                continue
+
             view.show_contacts_view(search_contact)
 
             if view.data.message is not None:
                 view.message_view(view.data.message)
                 view.clean_object()
                 continue
+
 
             view.change_contact_view()
             change_dict = view.data.data
@@ -82,12 +96,19 @@ def main() -> None:
             view.search_contact_view()
 
             search_dict = view.data.data
-            if search_dict is None:
+            if search_dict is None or search_dict == '':
+                view.data.message = 'Вы ввели недопустимое значение. Попробуйте еще раз.'
+                view.message_view(view.data.message)
+                view.clean_object()
                 continue
 
             search_contact = dict_functions["search_contact"]
             result_search_contact = search_contact(search_dict)
-
+            if result_search_contact.empty:
+                view.data.message = 'Такого контакта нет.'
+                view.message_view(view.data.message)
+                view.clean_object()
+                continue
             view.show_contacts_view(result_search_contact)
             view.clean_object()
 
@@ -95,7 +116,11 @@ def main() -> None:
             result = view.create_contact_view()
             create_contact = dict_functions[result.next_execute_function]
 
-            create_contact(result.data)
+            if not create_contact(result.data):
+                view.data.message = 'Вы ввели недопустимое значение. Попробуйте еще раз.'
+                view.message_view(view.data.message)
+                view.clean_object()
+                continue
             view.show_contacts_view(dict_functions["show_contacts"]())
             view.clean_object()
 
